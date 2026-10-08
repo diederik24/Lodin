@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lodin Honden Uitlaat Service
 
-## Getting Started
+Website gebouwd met Next.js, TypeScript en Tailwind CSS.
 
-First, run the development server:
+## Starten
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+De site draait daarna op http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Waar pas je wat aan
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Wat                                           | Bestand                            |
+| --------------------------------------------- | ---------------------------------- |
+| Telefoon, e-mail, KvK, social media           | `src/data/site.ts` (blok `bedrijf`) |
+| Plaatsen in het werkgebied                    | `src/data/site.ts` (`werkgebied`)   |
+| Prijzen en wat er in een pakket zit           | `src/data/site.ts` (`tarieven`)     |
+| Veelgestelde vragen                           | `src/data/site.ts` (`faq`)          |
+| Reviews van klanten                           | `src/data/site.ts` (`reviews`)      |
+| Stappen van de werkwijze                      | `src/data/site.ts` (`stappen`)      |
+| Kleuren en lettertypes                        | `src/app/globals.css`               |
 
-## Learn More
+De contactgegevens staan nu op placeholders. Vervang ze in `src/data/site.ts`,
+dan worden ze overal op de site meteen goed getoond.
 
-To learn more about Next.js, take a look at the following resources:
+## Foto's toevoegen
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+De fotovakken zijn nu nog placeholders. Zet je eigen foto's in `public/fotos` en
+vervang in `src/app/galerij/page.tsx` het component `<FotoVak />` door:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```tsx
+<Image src="/fotos/jouw-foto.jpg" alt="Omschrijving" width={800} height={600} />
+```
 
-## Deploy on Vercel
+## Formulier
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Het contactformulier in `src/components/ContactFormulier.tsx` verstuurt bewust
+nog niets. In `onSubmit` kun je later een mailservice aansluiten.
