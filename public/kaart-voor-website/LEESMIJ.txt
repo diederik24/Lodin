@@ -1,0 +1,17 @@
+Kaart Werkgebied - voor je website
+=================================
+
+Bestanden in deze map:
+- kaart.html                  = de interactieve kaart
+- werkgebied-buiten.geojson   = buitencontour
+- werkgebied.geojson          = dorpsgrenzen (voor labels)
+- werkgebied-overzicht.png    = vaste afbeelding (optioneel)
+
+Hoe gebruiken:
+1. Kopieer deze hele map naar je websiteproject.
+2. Houd alle bestanden bij elkaar in dezelfde map.
+3. Open /kaart.html of embed zo:
+
+<iframe src="/kaart-voor-website/kaart.html" title="Werkgebied" style="width:100%;height:500px;border:0;"></iframe>
+
+Geen API-key nodig.

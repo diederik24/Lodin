@@ -42,3 +42,7 @@ next-env.d.ts
 
 # screenshots om het ontwerp te controleren
 /screens
+
+# Werkkopie buiten public (site gebruikt public/kaart-voor-website)
+/kaart-voor-website/
+

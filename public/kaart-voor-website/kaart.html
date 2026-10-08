@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Werkgebied</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet" />
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #1c241c;
+      --muted: #5a675a;
+      --panel: rgba(247, 245, 240, 0.92);
+      --line: #c9c2b4;
+      --accent-soft: rgba(47, 107, 79, 0.22);
+      --stroke: #1f4d38;
+      --btn: #f3f0e8;
+      --btn-active: #2f6b4f;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background: #e8e4db;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .panel {
+      position: absolute;
+      z-index: 2;
+      top: 1rem;
+      left: 1rem;
+      width: min(22rem, calc(100vw - 2rem));
+      background: var(--panel);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      padding: 1.1rem 1.15rem 1rem;
+      box-shadow: 0 10px 30px rgba(28, 36, 28, 0.12);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .panel.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-0.4rem);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .panel h1 {
+      margin: 0;
+      font-family: Fraunces, Georgia, serif;
+      font-size: 1.55rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .panel-close,
+    .panel-open {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--btn);
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .panel-close {
+      width: 2rem;
+      height: 2rem;
+      flex: 0 0 auto;
+      font-size: 1.15rem;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .panel-open {
+      position: absolute;
+      z-index: 2;
+      top: 1rem;
+      left: 1rem;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 20px rgba(28, 36, 28, 0.12);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-0.3rem);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .panel-open.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    .panel p {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+
+    .styles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.85rem;
+    }
+
+    .styles button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--btn);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.82rem;
+      padding: 0.35rem 0.65rem;
+      cursor: pointer;
+    }
+
+    .styles button[aria-pressed="true"] {
+      background: var(--btn-active);
+      border-color: var(--btn-active);
+      color: #f7f5f0;
+    }
+
+    .list {
+      margin: 0.9rem 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .list li {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.92rem;
+    }
+
+    .swatch {
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid var(--stroke);
+      background: var(--accent-soft);
+      flex: 0 0 auto;
+    }
+
+    .note {
+      margin-top: 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .note a { color: var(--stroke); }
+
+    .maplibregl-popup-content {
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.9rem;
+      padding: 0.55rem 0.7rem;
+    }
+
+    @media (max-width: 640px) {
+      .panel {
+        top: auto;
+        bottom: 0.75rem;
+        left: 0.75rem;
+        right: 0.75rem;
+        width: auto;
+      }
+    }
+
+    /* Paneel verborgen op de website; de kaart zelf blijft intact */
+    .panel,
+    .panel-open {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <button type="button" class="panel-open" id="panel-open" aria-controls="info-panel" aria-expanded="false">
+    Info tonen
+  </button>
+
+  <aside class="panel" id="info-panel">
+    <div class="panel-header">
+      <h1>Werkgebied</h1>
+      <button type="button" class="panel-close" id="panel-close" aria-label="Paneel verbergen">×</button>
+    </div>
+    <p>Eén buitencontour om het hele werkgebied, zonder tussengrenzen.</p>
+
+    <div class="styles" role="group" aria-label="Kaartstijl">
+      <button type="button" data-style="positron" aria-pressed="true">Positron</button>
+      <button type="button" data-style="bright" aria-pressed="false">Bright</button>
+      <button type="button" data-style="liberty" aria-pressed="false">Liberty</button>
+    </div>
+
+    <ul class="list" id="plaatsen"></ul>
+    <div class="note">
+      Vector tiles via <a href="https://openfreemap.org/quick_start/">OpenFreeMap</a> + MapLibre.
+      Geen API-key. Grenzen: OpenStreetMap.
+    </div>
+  </aside>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script>
+    const plaatsen = [
+      "Dongen",
+      "Loon op Zand",
+      "Waalwijk",
+      "Kaatsheuvel",
+      "De Moer",
+      "Sprang-Capelle"
+    ];
+
+    // Alleen deze namen op de kaart tonen (uit werkgebied-geojson)
+    const labelsAan = [
+      "Dongen",
+      "Loon op Zand",
+      "Waalwijk",
+      "Kaatsheuvel",
+      "De Moer",
+      "Sprang-Capelle"
+    ];
+
+    // Extra plaatsnamen buiten de outline
+    const extraLabels = [
+      { name: "Tilburg", coordinates: [5.04529687, 51.57274911] },
+      { name: "Drunen", coordinates: [5.13483956, 51.6681679] },
+      { name: "Waspik", coordinates: [4.95043394, 51.69443966] }
+    ];
+
+    const basemapLabelLayers = [
+      "label_other",
+      "label_village",
+      "label_town",
+      "label_state",
+      "label_city",
+      "label_city_capital",
+      "label_country_3",
+      "label_country_2",
+      "label_country_1"
+    ];
+
+    const list = document.getElementById("plaatsen");
+    const panel = document.getElementById("info-panel");
+    const panelOpen = document.getElementById("panel-open");
+    const panelClose = document.getElementById("panel-close");
+
+    function setPanelVisible(visible) {
+      panel.classList.toggle("is-hidden", !visible);
+      panelOpen.classList.toggle("is-visible", !visible);
+      panelOpen.setAttribute("aria-expanded", String(visible));
+      panel.hidden = !visible;
+    }
+
+    panelClose.addEventListener("click", () => setPanelVisible(false));
+    panelOpen.addEventListener("click", () => setPanelVisible(true));
+
+    plaatsen.forEach((naam) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="swatch" aria-hidden="true"></span><span>${naam}</span>`;
+      list.appendChild(li);
+    });
+
+    const styleUrl = (naam) => `https://tiles.openfreemap.org/styles/${naam}`;
+    let geojsonData = null;
+    let labelData = null;
+    let fittedOnce = false;
+    let popup = null;
+
+    const map = new maplibregl.Map({
+      container: "map",
+      style: styleUrl("positron"),
+      center: [5.02, 51.66],
+      zoom: 10.5,
+      antialias: true,
+      interactive: false,
+      attributionControl: false
+    });
+
+    function boundsFromGeoJSON(data) {
+      const bounds = new maplibregl.LngLatBounds();
+      const walk = (coords) => {
+        if (typeof coords[0] === "number") {
+          bounds.extend(coords);
+          return;
+        }
+        coords.forEach(walk);
+      };
+      data.features.forEach((f) => walk(f.geometry.coordinates));
+      return bounds;
+    }
+
+    function ringCentroid(ring) {
+      let area = 0;
+      let x = 0;
+      let y = 0;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [x1, y1] = ring[i];
+        const [x2, y2] = ring[j];
+        const f = x1 * y2 - x2 * y1;
+        area += f;
+        x += (x1 + x2) * f;
+        y += (y1 + y2) * f;
+      }
+      area *= 0.5;
+      if (Math.abs(area) < 1e-12) {
+        const mid = ring[Math.floor(ring.length / 2)];
+        return [mid[0], mid[1]];
+      }
+      return [x / (6 * area), y / (6 * area)];
+    }
+
+    function featureCentroid(feature) {
+      const g = feature.geometry;
+      if (g.type === "Polygon") return ringCentroid(g.coordinates[0]);
+      if (g.type === "MultiPolygon") return ringCentroid(g.coordinates[0][0]);
+      return [5.02, 51.66];
+    }
+
+    function hideBasemapPlaceNames() {
+      basemapLabelLayers.forEach((id) => {
+        if (map.getLayer(id)) {
+          map.setLayoutProperty(id, "visibility", "none");
+        }
+      });
+    }
+
+    function setOrAddSource(id, data) {
+      if (map.getSource(id)) {
+        map.getSource(id).setData(data);
+      } else {
+        map.addSource(id, { type: "geojson", data });
+      }
+    }
+
+    function addWerkgebiedLayers() {
+      if (!geojsonData || !labelData) return;
+
+      hideBasemapPlaceNames();
+      setOrAddSource("werkgebied", geojsonData);
+      setOrAddSource("dorpslabels", labelData);
+
+      if (!map.getLayer("werkgebied-fill")) {
+        map.addLayer({
+          id: "werkgebied-fill",
+          type: "fill",
+          source: "werkgebied",
+          paint: {
+            "fill-color": "#2f6b4f",
+            "fill-opacity": 0.24
+          }
+        });
+      }
+
+      if (!map.getLayer("werkgebied-outline")) {
+        map.addLayer({
+          id: "werkgebied-outline",
+          type: "line",
+          source: "werkgebied",
+          paint: {
+            "line-color": "#1f4d38",
+            "line-width": 2.75,
+            "line-opacity": 0.95
+          }
+        });
+      }
+
+      if (!map.getLayer("dorpslabels")) {
+        map.addLayer({
+          id: "dorpslabels",
+          type: "symbol",
+          source: "dorpslabels",
+          layout: {
+            "text-field": ["get", "name"],
+            "text-size": 14,
+            "text-font": ["Noto Sans Bold"],
+            "text-anchor": "center",
+            "text-allow-overlap": true,
+            "text-ignore-placement": true
+          },
+          paint: {
+            "text-color": "#1c241c",
+            "text-halo-color": "#f7f5f0",
+            "text-halo-width": 1.6
+          }
+        });
+      }
+
+      if (!fittedOnce) {
+        map.fitBounds(boundsFromGeoJSON(geojsonData), {
+          padding: 60,
+          duration: 800
+        });
+        fittedOnce = true;
+      }
+    }
+
+    async function loadGeoJSON() {
+      const [buitenRes, dorpenRes] = await Promise.all([
+        fetch("werkgebied-buiten.geojson"),
+        fetch("werkgebied.geojson")
+      ]);
+      if (!buitenRes.ok || !dorpenRes.ok) throw new Error("GeoJSON niet gevonden");
+
+      geojsonData = await buitenRes.json();
+      const dorpen = await dorpenRes.json();
+
+      const dorpsFeatures = dorpen.features
+        .filter((f) => labelsAan.includes(f.properties.name))
+        .map((f) => ({
+          type: "Feature",
+          properties: { name: f.properties.name },
+          geometry: {
+            type: "Point",
+            coordinates: featureCentroid(f)
+          }
+        }));
+
+      const extraFeatures = extraLabels.map((p) => ({
+        type: "Feature",
+        properties: { name: p.name },
+        geometry: {
+          type: "Point",
+          coordinates: p.coordinates
+        }
+      }));
+
+      labelData = {
+        type: "FeatureCollection",
+        features: [...dorpsFeatures, ...extraFeatures]
+      };
+
+      addWerkgebiedLayers();
+    }
+
+    map.on("load", () => {
+      loadGeoJSON().catch((err) => {
+        list.innerHTML = "<li>Kaartgegevens konden niet geladen worden.</li>";
+        console.error(err);
+      });
+    });
+
+    map.on("style.load", () => {
+      hideBasemapPlaceNames();
+      if (geojsonData && labelData) addWerkgebiedLayers();
+    });
+
+    map.on("click", "werkgebied-fill", (e) => {
+      if (popup) popup.remove();
+      popup = new maplibregl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML("<strong>Werkgebied</strong>")
+        .addTo(map);
+    });
+
+    map.on("mouseenter", "werkgebied-fill", () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+    map.on("mouseleave", "werkgebied-fill", () => {
+      map.getCanvas().style.cursor = "";
+    });
+
+    document.querySelectorAll(".styles button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const naam = btn.dataset.style;
+        document.querySelectorAll(".styles button").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b === btn));
+        });
+        map.setStyle(styleUrl(naam));
+      });
+    });
+  </script>
+</body>
+</html>
